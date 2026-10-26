@@ -28,3 +28,18 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+#  Intellij IDEA
+.idea/
+*.iml
+
+# Java build output
+target/
+out/
+*.class
+
+#macOS
+.DS_Store
+
+
+# Local player progress english-master-progress.properties
