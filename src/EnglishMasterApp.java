@@ -1409,6 +1409,7 @@ public class EnglishMasterApp extends Application {
         if (!resultsSaved) {
 
             if (campaignMode) {
+                progress.recordResult(currentCampaignLevel, percentage);
                 boolean passed = percentage >= 70.0;
 
                 String levelName = switch (currentCampaignLevel) {
@@ -1508,6 +1509,13 @@ public class EnglishMasterApp extends Application {
                         sessionQuestions.length
                 );
             }
+
+            progress.checkAchievements(
+                    campaignMode ? currentCampaignLevel : 0,
+                    percentage,
+                    guiCorrectAnswers,
+                    sessionQuestions.length
+            );
 
             progress.addXP(guiCorrectAnswers * 10);
             resultsSaved = true;

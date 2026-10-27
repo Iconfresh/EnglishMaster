@@ -460,6 +460,7 @@ public class PlayerProgress {
         save();
     }
 
+
     public void checkAchievements(
             int levelNumber,
             double percentage,
@@ -468,8 +469,8 @@ public class PlayerProgress {
     ) {
         boolean changed = false;
 
-        // Achievement 1: Complete a quiz attempt
-        if (!firstStepsUnlocked) {
+        // Achievement 1: Complete a valid quiz attempt
+        if (totalQuestions > 0 && !firstStepsUnlocked) {
             firstStepsUnlocked = true;
             changed = true;
 
@@ -480,8 +481,8 @@ public class PlayerProgress {
 
         // Achievement 2: Pass Beginner
         if (levelNumber == 1
-                 && percentage >= 70
-                 && !grammarChampionUnlocked) {
+                && percentage >= 70
+                && !grammarChampionUnlocked) {
 
             grammarChampionUnlocked = true;
             changed = true;
@@ -492,9 +493,9 @@ public class PlayerProgress {
         }
 
         // Achievement 3: Answer every question correctly
-        if (totalQuestions >= 0
-                 && correctAnswers == totalQuestions
-                 && !perfectScoreUnlocked) {
+        if (totalQuestions > 0
+                && correctAnswers == totalQuestions
+                && !perfectScoreUnlocked) {
 
             perfectScoreUnlocked = true;
             changed = true;
@@ -521,8 +522,8 @@ public class PlayerProgress {
         if (changed) {
             save();
         }
-
     }
+
 
 
 }
