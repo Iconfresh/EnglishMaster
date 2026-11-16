@@ -7,6 +7,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -15,10 +16,18 @@ import javafx.stage.Stage;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.SVGPath;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.media.AudioClip;
+import java.net.URL;
 
 public class EnglishMasterApp extends Application {
+    public static void main(String[] args) {
+        launch(args);
+    }
 
     private static final String BACKGROUND = "#111827";
     private static final String PANEL = "#1F2937";
@@ -27,6 +36,7 @@ public class EnglishMasterApp extends Application {
     private static final String MUTED = "#9CA3AF";
 
     private BorderPane root;
+    private VBox toastContainer;
     private Stage stage;
     private Button activeNavButton;
 
@@ -239,6 +249,7 @@ public class EnglishMasterApp extends Application {
         Button campaign = navButton("trophy", "Campaign Mode");
         Button progress = navButton("progress", "My Progress");
         Button achievements = navButton("achievement", "Achievements");
+        Button settings = navButton("settings", "Settings");
 
         home.setOnAction(e -> {
             setActiveNavigationButton(home);
@@ -265,6 +276,11 @@ public class EnglishMasterApp extends Application {
             showAchievements();
         });
 
+        settings.setOnAction(e -> {
+            setActiveNavigationButton(settings);
+            showSettings();
+        });
+
         setActiveNavigationButton(home);
 
         RegionSpacer spacer = new RegionSpacer();
@@ -284,6 +300,7 @@ public class EnglishMasterApp extends Application {
                 campaign,
                 progress,
                 achievements,
+                settings,
                 spacer,
                 footer
         );
@@ -384,10 +401,6 @@ public class EnglishMasterApp extends Application {
     }
 
 
-
-
-
-
     private void showDashboard() {
         VBox page = pageContainer();
         page.setSpacing(22);
@@ -414,7 +427,15 @@ public class EnglishMasterApp extends Application {
                 : totalCorrect * 100.0 / totalAnswered;
 
         // Dashboard heading
-        Label greeting = heading("Ready to level up?");
+        // Personalised dashboard greeting
+        String playerName = progress.getPlayerName();
+
+        String greetingText =
+                playerName == null || playerName.trim().isEmpty()
+                        ? "Ready to level up?"
+                        : "Welcome back, " + playerName + "!";
+
+        Label greeting = heading(greetingText);
 
         Label subtitle = mutedText(
                 "Build your English skills one question at a time."
@@ -423,10 +444,13 @@ public class EnglishMasterApp extends Application {
 
         VBox welcome = new VBox(6, greeting, subtitle);
 
-        // Learning journey banner
-        VBox hero = new VBox(15);
-        hero.setPadding(new Insets(28));
+
+// Learning journey banner
+        HBox hero = new HBox(20);
+        hero.setAlignment(Pos.CENTER_LEFT);
+        hero.setPadding(new Insets(24, 30, 24, 30));
         hero.setMaxWidth(Double.MAX_VALUE);
+        hero.setMinHeight(205);
 
         hero.setStyle(
                 "-fx-background-color: linear-gradient("
@@ -435,6 +459,11 @@ public class EnglishMasterApp extends Application {
                         + "-fx-border-color: #6D5CE8;"
                         + "-fx-border-radius: 18px;"
         );
+
+// Left side: welcome text
+        VBox heroContent = new VBox(12);
+        heroContent.setAlignment(Pos.CENTER_LEFT);
+        heroContent.setMaxWidth(Double.MAX_VALUE);
 
         Label heroTag = new Label("YOUR LEARNING JOURNEY");
         heroTag.setStyle(
@@ -475,12 +504,45 @@ public class EnglishMasterApp extends Application {
         );
         play.setOnAction(e -> showPractice());
 
-        hero.getChildren().addAll(
+        heroContent.getChildren().addAll(
                 heroTag,
                 heroTitle,
                 heroDescription,
                 play
         );
+
+        HBox.setHgrow(heroContent, Priority.ALWAYS);
+
+// Right side: crowned books illustration
+        VBox bookIllustration = new VBox(0);
+        bookIllustration.setAlignment(Pos.CENTER);
+        bookIllustration.setMinWidth(190);
+        bookIllustration.setPrefWidth(230);
+
+        Label crown = new Label("👑");
+        crown.setStyle("-fx-font-size: 48px;");
+
+        Label books = new Label("📚");
+        books.setStyle("-fx-font-size: 92px;");
+
+        Label illustrationCaption = new Label("LEARN • PRACTISE • MASTER");
+        illustrationCaption.setStyle(
+                "-fx-text-fill: #DDD6FE;"
+                        + "-fx-font-size: 9px;"
+                        + "-fx-font-weight: bold;"
+        );
+
+        bookIllustration.getChildren().addAll(
+                crown,
+                books,
+                illustrationCaption
+        );
+
+        hero.getChildren().addAll(
+                heroContent,
+                bookIllustration
+        );
+
 
         // Overview statistics
         Label statsTitle = sectionHeading("YOUR OVERVIEW");
@@ -648,64 +710,315 @@ public class EnglishMasterApp extends Application {
         );
         campaignHint.setWrapText(true);
 
-        Button campaignButton = secondaryButton("Continue Campaign  →");
-        campaignButton.setOnAction(e -> showCampaign());
 
         campaignCard.getChildren().addAll(
                 campaignRow,
                 campaignBar,
-                campaignHint,
-                campaignButton
+                campaignHint
         );
 
-        // Quick actions
+
+// Side-by-side performance and campaign panels
+        VBox performanceSection = new VBox(
+                10,
+                performanceTitle,
+                performanceCard
+        );
+
+        VBox campaignSection = new VBox(
+                10,
+                campaignTitle,
+                campaignCard
+        );
+
+        performanceSection.setMaxWidth(Double.MAX_VALUE);
+        campaignSection.setMaxWidth(Double.MAX_VALUE);
+
+        HBox summaryPanels = new HBox(
+                16,
+                performanceSection,
+                campaignSection
+        );
+
+        summaryPanels.setAlignment(Pos.TOP_LEFT);
+        summaryPanels.setMaxWidth(Double.MAX_VALUE);
+
+        HBox.setHgrow(performanceSection, Priority.ALWAYS);
+        HBox.setHgrow(campaignSection, Priority.ALWAYS);
+
+
+
+
+
+// Quick actions
         Label actionsTitle = sectionHeading("CHOOSE YOUR NEXT MOVE");
 
-        HBox quickActions = new HBox(14);
-        quickActions.setFillHeight(true);
+        GridPane quickActions = new GridPane();
+        quickActions.setHgap(14);
+        quickActions.setVgap(14);
         quickActions.setMaxWidth(Double.MAX_VALUE);
 
-        VBox practiceCard = actionCard(
-                "book",
-                "Topic Practice",
-                "Choose a topic and difficulty.",
-                this::showPractice
+        VBox campaignAction = featureCard(
+                "trophy",
+                "Campaign Mode",
+                "Take on level-based challenges and prove your skills.",
+                "#A855F7",
+                "#35205F",
+                this::showCampaign
         );
 
-        VBox achievementsCard = actionCard(
-                "trophy",
+        VBox progressAction = featureCard(
+                "progress",
+                "My Progress",
+                "Track your performance and see how far you've come.",
+                "#60A5FA",
+                "#172F59",
+                this::showProgress
+        );
+
+        VBox achievementsAction = featureCard(
+                "achievement",
                 "Achievements",
                 "Explore your milestones and rewards.",
+                "#FBBF24",
+                "#49351A",
                 this::showAchievements
         );
 
-        practiceCard.setMaxWidth(Double.MAX_VALUE);
-        achievementsCard.setMaxWidth(Double.MAX_VALUE);
+        VBox[] actionCards = {
+                campaignAction,
+                progressAction,
+                achievementsAction
+        };
 
-        HBox.setHgrow(practiceCard, Priority.ALWAYS);
-        HBox.setHgrow(achievementsCard, Priority.ALWAYS);
+        for (int i = 0; i < actionCards.length; i++) {
+            VBox card = actionCards[i];
 
-        quickActions.getChildren().addAll(
-                practiceCard,
-                achievementsCard
+            card.setMinWidth(0);
+            card.setMaxWidth(Double.MAX_VALUE);
+
+            quickActions.add(card, i, 0);
+            GridPane.setHgrow(card, Priority.ALWAYS);
+
+            ColumnConstraints constraints = new ColumnConstraints();
+            constraints.setPercentWidth(100.0 / 3);
+            constraints.setHgrow(Priority.ALWAYS);
+            constraints.setFillWidth(true);
+
+            quickActions.getColumnConstraints().add(constraints);
+        }
+
+
+
+        // Topic practice preview
+        Label topicsTitle = sectionHeading("PRACTISE BY TOPIC");
+
+        String[] topicDescriptions = {
+                "Tenses, agreement and grammar rules.",
+                "Learn words and their meanings.",
+                "Improve spelling accuracy.",
+                "Use punctuation marks correctly.",
+                "Build clear, well-structured sentences.",
+                "Explore similar and opposite words.",
+                "Read passages and answer questions."
+        };
+
+        String[] topicIcons = {
+                "grammar",
+                "book",
+                "spelling",
+                "punctuation",
+                "sentence",
+                "synonyms",
+                "reading"
+        };
+
+
+// Horizontal Dashboard topic preview
+        HBox topicRow = new HBox(14);
+        topicRow.setAlignment(Pos.CENTER_LEFT);
+        topicRow.setFillHeight(true);
+
+        for (int i = 0; i < topics.length; i++) {
+            String topic = topics[i];
+
+            VBox card = actionCard(
+                    topicIcons[i],
+                    topic,
+                    topicDescriptions[i],
+                    () -> showDifficultySelection(topic)
+            );
+
+            // Compact Dashboard card dimensions
+            card.setMinWidth(190);
+            card.setPrefWidth(190);
+            card.setMaxWidth(190);
+            card.setMinHeight(185);
+
+            topicRow.getChildren().add(card);
+        }
+
+// Horizontal scrolling container
+        ScrollPane topicScroll = new ScrollPane(topicRow);
+
+        topicScroll.setFitToHeight(true);
+        topicScroll.setFitToWidth(false);
+        topicScroll.setPannable(true);
+
+        topicScroll.setHbarPolicy(
+                ScrollPane.ScrollBarPolicy.AS_NEEDED
         );
 
+        topicScroll.setVbarPolicy(
+                ScrollPane.ScrollBarPolicy.NEVER
+        );
+
+        topicScroll.setPrefViewportHeight(205);
+        topicScroll.setMaxWidth(Double.MAX_VALUE);
+
+        topicScroll.setStyle(
+                "-fx-background-color: transparent;"
+                        + "-fx-background: transparent;"
+                        + "-fx-border-color: transparent;"
+        );
+
+
+
+
         // Assemble the dashboard
+
         page.getChildren().addAll(
                 welcome,
                 hero,
+
                 statsTitle,
                 stats,
-                performanceTitle,
-                performanceCard,
-                campaignTitle,
-                campaignCard,
+
+                summaryPanels,
+
+                topicsTitle,
+                topicScroll,
+
                 actionsTitle,
                 quickActions
         );
 
+
         showScrollablePage(page);
     }
+
+
+    private VBox featureCard(
+            String icon,
+            String title,
+            String description,
+            String accent,
+            String background,
+            Runnable action
+    ) {
+
+        // Icon container
+        Node iconNode = iconGraphic(icon, 29, "#FFFFFF");
+
+        StackPane iconContainer = new StackPane(iconNode);
+        iconContainer.setMinSize(60, 60);
+        iconContainer.setPrefSize(60, 60);
+        iconContainer.setMaxSize(60, 60);
+
+        iconContainer.setStyle(
+                "-fx-background-color: " + accent + ";"
+                        + "-fx-background-radius: 14px;"
+        );
+
+        // Feature title
+        Label titleLabel = new Label(title);
+        titleLabel.setWrapText(true);
+        titleLabel.setStyle(
+                "-fx-text-fill: white;"
+                        + "-fx-font-size: 15px;"
+                        + "-fx-font-weight: bold;"
+        );
+
+        // Feature description
+        Label descriptionLabel = new Label(description);
+        descriptionLabel.setWrapText(true);
+        descriptionLabel.setStyle(
+                "-fx-text-fill: #E5E7EB;"
+                        + "-fx-font-size: 11px;"
+                        + "-fx-line-spacing: 2px;"
+        );
+
+        VBox textContent = new VBox(
+                6,
+                titleLabel,
+                descriptionLabel
+        );
+
+        textContent.setAlignment(Pos.CENTER_LEFT);
+        textContent.setMaxWidth(Double.MAX_VALUE);
+
+        HBox.setHgrow(textContent, Priority.ALWAYS);
+
+        // Navigation arrow
+        Label arrow = new Label("→");
+        arrow.setMinWidth(28);
+        arrow.setPrefWidth(28);
+        arrow.setAlignment(Pos.CENTER);
+        arrow.setStyle(
+                "-fx-text-fill: white;"
+                        + "-fx-font-size: 23px;"
+                        + "-fx-font-weight: bold;"
+        );
+
+        HBox content = new HBox(
+                14,
+                iconContainer,
+                textContent,
+                arrow
+        );
+
+        content.setAlignment(Pos.CENTER_LEFT);
+
+        // Main card
+        VBox card = new VBox(content);
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.setPadding(new Insets(17));
+        card.setMinHeight(112);
+        card.setMaxWidth(Double.MAX_VALUE);
+
+        String normalStyle =
+                "-fx-background-color: " + background + ";"
+                        + "-fx-background-radius: 15px;"
+                        + "-fx-border-color: " + accent + ";"
+                        + "-fx-border-radius: 15px;"
+                        + "-fx-border-width: 1.2px;"
+                        + "-fx-cursor: hand;";
+
+        String hoverStyle =
+                "-fx-background-color: derive(" + background + ", 18%);"
+                        + "-fx-background-radius: 15px;"
+                        + "-fx-border-color: " + accent + ";"
+                        + "-fx-border-radius: 15px;"
+                        + "-fx-border-width: 2px;"
+                        + "-fx-cursor: hand;";
+
+        card.setStyle(normalStyle);
+
+        card.setOnMouseEntered(e ->
+                card.setStyle(hoverStyle)
+        );
+
+        card.setOnMouseExited(e ->
+                card.setStyle(normalStyle)
+        );
+
+        card.setOnMouseClicked(e ->
+                action.run()
+        );
+
+        return card;
+    }
+
 
 
 
@@ -1116,7 +1429,7 @@ public class EnglishMasterApp extends Application {
                 "Advanced"
         );
 
-        difficulty.setValue("Beginner");
+        difficulty.setValue(progress.getPreferredDifficulty());
         difficulty.setMaxWidth(350);
 
         difficulty.setStyle(
@@ -1331,6 +1644,7 @@ public class EnglishMasterApp extends Application {
                 if (correct) {
                     guiCorrectAnswers++;
                     guiScore += 10;
+                    playSound("correct.wav");
 
                     feedback.setText(
                             "Correct! +10 points\n"
@@ -1343,6 +1657,7 @@ public class EnglishMasterApp extends Application {
                     );
                 } else {
                     guiWrongAnswers++;
+                    playSound("incorrect.wav");
 
                     String[] currentOptions = question.getOptions();
                     int correctIndex = question.getCorrectAnswer() - 1;
@@ -1397,6 +1712,28 @@ public class EnglishMasterApp extends Application {
         );
 
         showScrollablePage(page);
+    }
+
+    private void playSound(String soundFile) {
+        if (!progress.isSoundEnabled()) {
+            System.out.println("Sound is disabled in Settings.");
+            return;
+        }
+
+        URL soundURL = getClass().getResource("/sounds/" + soundFile);
+
+        if (soundURL == null) {
+            System.out.println("ERROR: Sound file not found: " + soundFile);
+            return;
+        }
+
+        System.out.println("Sound file found: " + soundURL);
+
+        AudioClip audioClip = new AudioClip(soundURL.toExternalForm());
+
+        System.out.println("AudioClip loaded: " + audioClip.isPlaying());
+
+        audioClip.play();
     }
 
 
@@ -1600,7 +1937,7 @@ public class EnglishMasterApp extends Application {
 
             page.getChildren().add(
                     mutedText(
-                            "Best campaign score: "
+                            "Average best score across levels: "
                                     + String.format(
                                     "%.1f%%",
                                     progress.getOverallBestScore()
@@ -1649,17 +1986,70 @@ public class EnglishMasterApp extends Application {
             );
         }
 
+        // Display newly unlocked achievement notifications
+        if (progress.isNotificationsEnabled()) {
+
+            java.util.List<String> notifications =
+                    progress.getPendingNotifications();
+
+            if (!notifications.isEmpty()) {
+
+                Label notificationTitle =
+                        sectionHeading("🔔 NEW NOTIFICATIONS");
+
+                VBox notificationCard = new VBox(12);
+
+                notificationCard.setPadding(new Insets(18));
+
+                notificationCard.setStyle(
+                        "-fx-background-color: #35205F;"
+                                + "-fx-background-radius: 12px;"
+                                + "-fx-border-color: #A855F7;"
+                                + "-fx-border-radius: 12px;"
+                );
+
+                for (String message : notifications) {
+
+                    Label notificationMessage = new Label(message);
+
+                    notificationMessage.setWrapText(true);
+
+                    notificationMessage.setStyle(
+                            "-fx-text-fill: #FFFFFF;"
+                                    + "-fx-font-size: 14px;"
+                                    + "-fx-font-weight: bold;"
+                    );
+
+                    notificationCard.getChildren().add(notificationMessage);
+                }
+
+                page.getChildren().addAll(
+                        notificationTitle,
+                        notificationCard
+                );
+            }
+        }
+
         showScrollablePage(page);
+
+
+// Display pending toast notifications
+        if (progress.isNotificationsEnabled()) {
+
+            java.util.List<String> notifications =
+                    progress.getPendingNotifications();
+
+            for (String message : notifications) {
+                showToastNotification(message);
+            }
+        }
+
     }
 
 
     // Keep the remainder of your existing showGuiResults()
         // method below this point, including the result labels,
         // buttons and root.setCenter(page).
-
-
-
-
 
     private void showProgress() {
         VBox page = pageContainer();
@@ -2035,6 +2425,256 @@ public class EnglishMasterApp extends Application {
         showScrollablePage(page);
     }
 
+    private void showSettings() {
+        VBox page = pageContainer();
+        page.setSpacing(22);
+
+        // Page heading
+        Label title = heading("Settings");
+
+        Label subtitle = mutedText(
+                "Manage your profile and application preferences."
+        );
+
+        page.getChildren().addAll(
+                title,
+                subtitle
+        );
+
+        // Player profile section
+        Label profileTitle = sectionHeading("PLAYER PROFILE");
+
+        Label nameLabel = new Label("Player name");
+        nameLabel.setStyle(
+                "-fx-text-fill: " + TEXT + ";"
+                        + "-fx-font-size: 13px;"
+                        + "-fx-font-weight: bold;"
+        );
+
+        TextField nameField = new TextField(
+                progress.getPlayerName() == null
+                        ? ""
+                        : progress.getPlayerName()
+        );
+
+        nameField.setPromptText("Enter your player name");
+        nameField.setMaxWidth(420);
+        nameField.setStyle(
+                "-fx-background-color: #111827;"
+                        + "-fx-text-fill: white;"
+                        + "-fx-prompt-text-fill: #9CA3AF;"
+                        + "-fx-border-color: #374151;"
+                        + "-fx-border-radius: 8px;"
+                        + "-fx-background-radius: 8px;"
+                        + "-fx-padding: 11px;"
+        );
+
+        Label feedback = mutedText("");
+
+        Button saveButton = primaryButton("Save Changes");
+        saveButton.setOnAction(e -> {
+            String newName = nameField.getText().trim();
+
+            if (newName.isEmpty()) {
+                feedback.setText("Please enter a player name.");
+                feedback.setStyle("-fx-text-fill: #F87171;");
+                return;
+            }
+
+            progress.setPlayerName(newName);
+
+            feedback.setText("Player name updated successfully.");
+            feedback.setStyle("-fx-text-fill: #34D399;");
+        });
+
+        VBox profileCard = new VBox(
+                14,
+                nameLabel,
+                nameField,
+                saveButton,
+                feedback
+        );
+
+        profileCard.setPadding(new Insets(22));
+        profileCard.setMaxWidth(Double.MAX_VALUE);
+        profileCard.setStyle(
+                "-fx-background-color: " + PANEL + ";"
+                        + "-fx-background-radius: 14px;"
+                        + "-fx-border-color: #293244;"
+                        + "-fx-border-radius: 14px;"
+        );
+
+
+// Learning preferences
+        Label learningTitle = sectionHeading("LEARNING PREFERENCES");
+
+        Label difficultyLabel = new Label("Preferred difficulty");
+        difficultyLabel.setStyle(
+                "-fx-text-fill: " + TEXT + ";"
+                        + "-fx-font-size: 13px;"
+                        + "-fx-font-weight: bold;"
+        );
+
+        ComboBox<String> difficultySelector = new ComboBox<>();
+        difficultySelector.getItems().addAll(
+                "Beginner",
+                "Intermediate",
+                "Advanced"
+        );
+
+        difficultySelector.setValue(
+                progress.getPreferredDifficulty()
+        );
+
+        difficultySelector.setMaxWidth(320);
+
+        difficultySelector.setStyle(
+                "-fx-background-color: #111827;"
+                        + "-fx-text-fill: white;"
+        );
+
+        difficultySelector.setOnAction(e -> {
+            String selectedDifficulty = difficultySelector.getValue();
+
+            if (selectedDifficulty != null) {
+                progress.setPreferredDifficulty(selectedDifficulty);
+                feedback.setText(
+                        "Preferred difficulty saved successfully."
+                );
+                feedback.setStyle("-fx-text-fill: #34D399;");
+            }
+        });
+
+        Label difficultyHint = mutedText(
+                "Choose the difficulty you prefer for Topic Practice."
+        );
+        difficultyHint.setWrapText(true);
+
+        VBox learningCard = new VBox(
+                12,
+                difficultyLabel,
+                difficultySelector,
+                difficultyHint
+        );
+
+        learningCard.setPadding(new Insets(22));
+        learningCard.setMaxWidth(Double.MAX_VALUE);
+        learningCard.setStyle(
+                "-fx-background-color: " + PANEL + ";"
+                        + "-fx-background-radius: 14px;"
+                        + "-fx-border-color: #293244;"
+                        + "-fx-border-radius: 14px;"
+        );
+
+
+// Sound and notification preferences
+        Label notificationTitle = sectionHeading("SOUND & NOTIFICATIONS");
+
+        CheckBox soundCheckBox = new CheckBox("Enable sound effects");
+        soundCheckBox.setSelected(progress.isSoundEnabled());
+        soundCheckBox.setStyle(
+                "-fx-text-fill: " + TEXT + ";"
+                        + "-fx-font-size: 13px;"
+        );
+
+        soundCheckBox.setOnAction(e ->
+                progress.setSoundEnabled(soundCheckBox.isSelected())
+        );
+
+        Label soundHint = mutedText(
+                "Enable or disable quiz and application sounds."
+        );
+        soundHint.setWrapText(true);
+
+        CheckBox notificationCheckBox =
+                new CheckBox("Enable notifications");
+
+        notificationCheckBox.setSelected(
+                progress.isNotificationsEnabled()
+        );
+
+        notificationCheckBox.setStyle(
+                "-fx-text-fill: " + TEXT + ";"
+                        + "-fx-font-size: 13px;"
+        );
+
+        notificationCheckBox.setOnAction(e ->
+                progress.setNotificationsEnabled(
+                        notificationCheckBox.isSelected()
+                )
+        );
+
+        Label notificationHint = mutedText(
+                "Control achievement and learning notifications."
+        );
+        notificationHint.setWrapText(true);
+
+        VBox notificationCard = new VBox(
+                12,
+                soundCheckBox,
+                soundHint,
+                notificationCheckBox,
+                notificationHint
+        );
+
+        notificationCard.setPadding(new Insets(22));
+        notificationCard.setMaxWidth(Double.MAX_VALUE);
+
+        notificationCard.setStyle(
+                "-fx-background-color: " + PANEL + ";"
+                        + "-fx-background-radius: 14px;"
+                        + "-fx-border-color: #293244;"
+                        + "-fx-border-radius: 14px;"
+        );
+
+
+
+        // Application information
+        Label appTitle = sectionHeading("APPLICATION INFORMATION");
+
+        Label appName = new Label("Shepherd | English Master");
+        appName.setStyle(
+                "-fx-text-fill: " + TEXT + ";"
+                        + "-fx-font-size: 15px;"
+                        + "-fx-font-weight: bold;"
+        );
+
+        Label appVersion = mutedText("Version 1.0.0");
+        Label appDescription = mutedText(
+                "An interactive English learning and assessment application."
+        );
+        appDescription.setWrapText(true);
+
+        VBox appCard = new VBox(
+                10,
+                appName,
+                appVersion,
+                appDescription
+        );
+
+        appCard.setPadding(new Insets(22));
+        appCard.setMaxWidth(Double.MAX_VALUE);
+        appCard.setStyle(
+                "-fx-background-color: " + PANEL + ";"
+                        + "-fx-background-radius: 14px;"
+                        + "-fx-border-color: #293244;"
+                        + "-fx-border-radius: 14px;"
+        );
+
+        page.getChildren().addAll(
+                profileTitle,
+                profileCard,
+                learningTitle,
+                learningCard,
+                notificationTitle,
+                notificationCard,
+                appTitle,
+                appCard
+        );
+
+        showScrollablePage(page);
+    }
+
 
 
 
@@ -2119,44 +2759,77 @@ public class EnglishMasterApp extends Application {
 
 
 
+
     private VBox statCard(
             String icon,
             String title,
             String value,
             String accent
     ) {
-        Node iconNode = iconGraphic(icon, 26, accent);
+        String background = switch (icon) {
+            case "xp" -> "#3B2935";
+            case "book" -> "#103C3D";
+            case "progress" -> "#1B315C";
+            default -> "#1F2937";
+        };
+
+        String iconBackground = switch (icon) {
+            case "xp" -> "#D9950A";
+            case "book" -> "#059669";
+            case "progress" -> "#2563EB";
+            default -> "#374151";
+        };
+
+        Node iconNode = iconGraphic(icon, 28, "#FFFFFF");
+
+        VBox iconBox = new VBox(iconNode);
+        iconBox.setAlignment(Pos.CENTER);
+        iconBox.setMinSize(58, 58);
+        iconBox.setMaxSize(58, 58);
+        iconBox.setStyle(
+                "-fx-background-color: " + iconBackground + ";"
+                        + "-fx-background-radius: 13px;"
+        );
 
         Label titleLabel = new Label(title);
         titleLabel.setWrapText(true);
         titleLabel.setStyle(
-                "-fx-text-fill: " + MUTED + ";"
-                        + "-fx-font-size: 10px;"
+                "-fx-text-fill: #E5E7EB;"
+                        + "-fx-font-size: 11px;"
                         + "-fx-font-weight: bold;"
         );
 
         Label valueLabel = new Label(value);
         valueLabel.setWrapText(true);
         valueLabel.setStyle(
-                "-fx-text-fill: " + TEXT + ";"
-                        + "-fx-font-size: 18px;"
+                "-fx-text-fill: #FFFFFF;"
+                        + "-fx-font-size: 23px;"
                         + "-fx-font-weight: bold;"
         );
 
-        VBox card = new VBox(12, iconNode, titleLabel, valueLabel);
-        card.setPadding(new Insets(20));
-        card.setMinHeight(145);
+        VBox textBox = new VBox(5, titleLabel, valueLabel);
+        textBox.setAlignment(Pos.CENTER_LEFT);
+
+        HBox content = new HBox(18, iconBox, textBox);
+        content.setAlignment(Pos.CENTER_LEFT);
+
+        VBox card = new VBox(content);
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.setPadding(new Insets(18));
+        card.setMinHeight(96);
         card.setMaxWidth(Double.MAX_VALUE);
+
         card.setStyle(
-                "-fx-background-color: linear-gradient("
-                        + "to bottom right, " + PANEL + ", #111827);"
-                        + "-fx-background-radius: 16px;"
-                        + "-fx-border-color: #374151;"
-                        + "-fx-border-radius: 16px;"
+                "-fx-background-color: " + background + ";"
+                        + "-fx-background-radius: 15px;"
+                        + "-fx-border-color: " + accent + ";"
+                        + "-fx-border-radius: 15px;"
+                        + "-fx-border-width: 1px;"
         );
 
         return card;
     }
+
 
 
 
@@ -2265,7 +2938,10 @@ public class EnglishMasterApp extends Application {
 
 
 
+
+
     private void showScrollablePage(VBox page) {
+
         ScrollPane scrollPane = new ScrollPane();
 
         scrollPane.setContent(page);
@@ -2290,10 +2966,34 @@ public class EnglishMasterApp extends Application {
         page.setFillWidth(true);
         page.setMaxWidth(Double.MAX_VALUE);
 
-        // Important: set the ScrollPane as the center.
-        // Do not call showScrollablePage(page) here.
-        root.setCenter(scrollPane);
+
+        StackPane pageContainer = new StackPane();
+
+        pageContainer.getChildren().add(scrollPane);
+
+// Container for stacked toast notifications
+        toastContainer = new VBox(10);
+        toastContainer.setMouseTransparent(true);
+
+        pageContainer.getChildren().add(toastContainer);
+
+        StackPane.setAlignment(
+                toastContainer,
+                javafx.geometry.Pos.TOP_RIGHT
+        );
+
+        StackPane.setMargin(
+                toastContainer,
+                new Insets(20)
+        );
+
+        pageContainer.setPickOnBounds(false);
+
+        root.setCenter(pageContainer);
+
     }
+
+
 
 
 
@@ -2394,7 +3094,70 @@ public class EnglishMasterApp extends Application {
         }
     }
 
-    public static void main(String[] args) {
-        launch(args);
+
+    private void showToastNotification(String message) {
+
+        if (!progress.isNotificationsEnabled()
+                || message == null
+                || message.isBlank()
+                || toastContainer == null) {
+            return;
+        }
+
+        Label toastMessage = new Label(message);
+        toastMessage.setWrapText(true);
+        toastMessage.setMaxWidth(320);
+        toastMessage.setOpacity(0);
+
+        toastMessage.setStyle(
+                "-fx-text-fill: white;"
+                        + "-fx-font-size: 14px;"
+                        + "-fx-font-weight: bold;"
+                        + "-fx-padding: 16px 20px;"
+                        + "-fx-background-color: #35205F;"
+                        + "-fx-background-radius: 12px;"
+                        + "-fx-border-color: #A855F7;"
+                        + "-fx-border-radius: 12px;"
+        );
+
+        toastContainer.getChildren().add(toastMessage);
+
+        // Fade in
+        javafx.animation.FadeTransition fadeIn =
+                new javafx.animation.FadeTransition(
+                        javafx.util.Duration.millis(350),
+                        toastMessage
+                );
+
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+
+        // Display duration
+        javafx.animation.PauseTransition delay =
+                new javafx.animation.PauseTransition(
+                        javafx.util.Duration.seconds(4)
+                );
+
+        // Fade out
+        javafx.animation.FadeTransition fadeOut =
+                new javafx.animation.FadeTransition(
+                        javafx.util.Duration.millis(350),
+                        toastMessage
+                );
+
+        fadeOut.setFromValue(1);
+        fadeOut.setToValue(0);
+
+        fadeIn.setOnFinished(event -> delay.play());
+
+        delay.setOnFinished(event -> fadeOut.play());
+
+        fadeOut.setOnFinished(event ->
+                toastContainer.getChildren().remove(toastMessage)
+        );
+
+        fadeIn.play();
     }
+
+
 }

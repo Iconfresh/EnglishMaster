@@ -2,10 +2,10 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 public class QuestionBank {
 
@@ -13,9 +13,16 @@ public class QuestionBank {
 
         List<Question> questions = new ArrayList<>();
 
-        try (BufferedReader reader = Files.newBufferedReader(
-                Paths.get(filename),
-                StandardCharsets.UTF_8)) {
+        InputStream questionStream =
+                QuestionBank.class.getResourceAsStream("/" + filename);
+
+        if (questionStream == null) {
+            System.out.println("Question file not found in resources: " + filename);
+            return new Question[0];
+        }
+
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(questionStream, StandardCharsets.UTF_8))) {
 
             String line;
             int lineNumber = 0;

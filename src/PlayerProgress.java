@@ -7,10 +7,22 @@ import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 public class PlayerProgress {
     private final Properties properties = new Properties();
-    private static final Path SAVE_FILE = Paths.get("english-master-progress.properties");
+
+    private static final Path SAVE_DIRECTORY =
+            Paths.get(
+                    System.getProperty("user.home"),
+                    ".shepherd",
+                    "english-master"
+            );
+
+    private static final Path SAVE_FILE =
+            SAVE_DIRECTORY.resolve("english-master-progress.properties");
+
     private String playerName;
     private boolean intermediateUnlocked;
     private boolean advancedUnlocked;
@@ -29,12 +41,15 @@ public class PlayerProgress {
     private int beginnerBestStars = 0;
     private int intermediateBestStars = 0;
     private int advancedBestStars = 0;
-
+    private boolean soundEnabled = true;
+    private boolean notificationsEnabled = true;
+    private String preferredDifficulty = "Beginner";
     private boolean firstStepsUnlocked = false;
     private boolean grammarChampionUnlocked = false;
     private boolean perfectScoreUnlocked = false;
     private boolean masterInProgressUnlocked = false;
     private final Map<String, int[]> topicStatistics = new HashMap<>();
+    private final List<String> pendingNotifications = new ArrayList<>();
 
     // Load saved progress when an object is created.
     public PlayerProgress() {
@@ -59,9 +74,13 @@ public class PlayerProgress {
             beginnerBestScore = readScore(properties, "beginnerBestScore");
             intermediateBestScore = readScore(properties, "intermediateBestScore");
             advancedBestScore = readScore(properties, "advancedBestScore");
-            totalXP = Math.max(
-                    0,
-                    Integer.parseInt(properties.getProperty("totalXP", "0")));
+            totalXP = Math.max(0, Integer.parseInt(properties.getProperty("totalXP", "0")));
+
+            soundEnabled = Boolean.parseBoolean(
+                    properties.getProperty("soundEnabled", "true"));
+
+            notificationsEnabled = Boolean.parseBoolean(
+                    properties.getProperty("notificationsEnabled", "true"));
 
             beginnerBestStars = Integer.parseInt(properties.getProperty("beginnerBestStars", "0"));
             intermediateBestStars = Integer.parseInt(properties.getProperty("intermediateBestStars", "0"));
@@ -113,6 +132,11 @@ public class PlayerProgress {
                 );
             }
         }
+
+        preferredDifficulty = properties.getProperty(
+                "preferredDifficulty",
+                "Beginner"
+        );
     }
 
     private double readScore(Properties properties, String property) {
@@ -166,11 +190,28 @@ public class PlayerProgress {
         properties.setProperty("grammarChampionUnlocked", String.valueOf(grammarChampionUnlocked));
         properties.setProperty("perfectScore", String.valueOf(perfectScoreUnlocked));
         properties.setProperty("masterInProgressUnlocked", String.valueOf(masterInProgressUnlocked));
+        properties.setProperty(
+                "preferredDifficulty",
+                preferredDifficulty
+        );
+        properties.setProperty(
+                "soundEnabled",
+                String.valueOf(soundEnabled)
+        );
 
-        try(OutputStream output = Files.newOutputStream(SAVE_FILE)) {
-            properties.store(output, "English Master Player Progress");
+        properties.setProperty(
+                "notificationsEnabled",
+                String.valueOf(notificationsEnabled)
+        );
+        try {
+            Files.createDirectories(SAVE_DIRECTORY);
+
+            try (OutputStream output = Files.newOutputStream(SAVE_FILE)) {
+                properties.store(output, "English Master Player Progress");
+            }
+
         } catch (IOException e) {
-            System.out.println("Could not save progress:" + e.getMessage());
+            System.out.println("Could not save progress: " + e.getMessage());
         }
     }
     public int getTotalXP() {
@@ -189,6 +230,24 @@ public class PlayerProgress {
         return advancedBestStars;
     }
 
+    public boolean isSoundEnabled() {
+        return soundEnabled;
+    }
+
+    public void setSoundEnabled(boolean soundEnabled) {
+        this.soundEnabled = soundEnabled;
+        save();
+    }
+
+    public boolean isNotificationsEnabled() {
+        return notificationsEnabled;
+    }
+
+    public void setNotificationsEnabled(boolean notificationsEnabled) {
+        this.notificationsEnabled = notificationsEnabled;
+        save();
+    }
+
     public void addXP(int amount) {
         if (amount < 0) {
             throw new IllegalArgumentException("XP amount cannot be negative.");
@@ -201,7 +260,9 @@ public class PlayerProgress {
 
     // Record the result of a completed level.
 
+
     public void recordResult(int levelNumber, double percentage) {
+
         if (!Double.isFinite(percentage)
                 || percentage < 0
                 || percentage > 100) {
@@ -213,13 +274,32 @@ public class PlayerProgress {
         boolean passed = percentage >= 70;
 
         switch (levelNumber) {
+
             case 1:
                 beginnerBestScore =
                         Math.max(beginnerBestScore, percentage);
 
                 if (passed) {
+
+                    if (!beginnerCompleted) {
+                        addNotification(
+                                "🎉 Beginner Campaign Completed! Great work!"
+                        );
+                    }
+
+                    if (!intermediateUnlocked) {
+                        addNotification(
+                                "🔓 Intermediate Campaign Unlocked!"
+                        );
+                    }
+
                     beginnerCompleted = true;
                     intermediateUnlocked = true;
+
+                } else {
+                    addNotification(
+                            "📚 Beginner Campaign: Keep practicing and try again!"
+                    );
                 }
                 break;
 
@@ -228,8 +308,26 @@ public class PlayerProgress {
                         Math.max(intermediateBestScore, percentage);
 
                 if (passed) {
+
+                    if (!intermediateCompleted) {
+                        addNotification(
+                                "🎉 Intermediate Campaign Completed!"
+                        );
+                    }
+
+                    if (!advancedUnlocked) {
+                        addNotification(
+                                "🔓 Advanced Campaign Unlocked!"
+                        );
+                    }
+
                     intermediateCompleted = true;
                     advancedUnlocked = true;
+
+                } else {
+                    addNotification(
+                            "📚 Intermediate Campaign: Keep practicing and try again!"
+                    );
                 }
                 break;
 
@@ -238,7 +336,20 @@ public class PlayerProgress {
                         Math.max(advancedBestScore, percentage);
 
                 if (passed) {
+
+                    if (!advancedCompleted) {
+                        addNotification(
+                                "🏆 Advanced Campaign Completed! "
+                                        + "You've completed all campaign levels!"
+                        );
+                    }
+
                     advancedCompleted = true;
+
+                } else {
+                    addNotification(
+                            "📚 Advanced Campaign: Keep practicing and try again!"
+                    );
                 }
                 break;
 
@@ -252,13 +363,21 @@ public class PlayerProgress {
     }
 
 
+
     public String getPlayerName() {
         return playerName;
     }
 
+
     public void setPlayerName(String playerName) {
-        this.playerName = playerName;
+        if (playerName == null || playerName.trim().isEmpty()) {
+            return;
+        }
+
+        this.playerName = playerName.trim();
+        save();
     }
+
 
     public boolean isBeginnerUnlocked() {
         return true;
@@ -339,6 +458,25 @@ public class PlayerProgress {
             count++;
         }
         return count;
+    }
+
+    public String getPreferredDifficulty() {
+        return preferredDifficulty;
+    }
+
+    public void setPreferredDifficulty(String preferredDifficulty) {
+        if (preferredDifficulty == null) {
+            return;
+        }
+
+        if (!preferredDifficulty.equals("Beginner")
+                && !preferredDifficulty.equals("Intermediate")
+                && !preferredDifficulty.equals("Advanced")) {
+            return;
+        }
+
+        this.preferredDifficulty = preferredDifficulty;
+        save();
     }
 
     public double getOverallBestScore() {
@@ -461,6 +599,7 @@ public class PlayerProgress {
     }
 
 
+
     public void checkAchievements(
             int levelNumber,
             double percentage,
@@ -469,17 +608,19 @@ public class PlayerProgress {
     ) {
         boolean changed = false;
 
-        // Achievement 1: Complete a valid quiz attempt
+        // Achievement 1: First Steps
         if (totalQuestions > 0 && !firstStepsUnlocked) {
             firstStepsUnlocked = true;
             changed = true;
 
-            System.out.println();
+            addNotification(
+                    "🏆 FIRST STEPS UNLOCKED! You've completed your first quiz."
+            );
+
             System.out.println("ACHIEVEMENT UNLOCKED: FIRST STEPS!");
-            System.out.println("You've completed your first quiz.");
         }
 
-        // Achievement 2: Pass Beginner
+        // Achievement 2: Grammar Champion
         if (levelNumber == 1
                 && percentage >= 70
                 && !grammarChampionUnlocked) {
@@ -487,12 +628,14 @@ public class PlayerProgress {
             grammarChampionUnlocked = true;
             changed = true;
 
-            System.out.println();
+            addNotification(
+                    "🏆 GRAMMAR CHAMPION UNLOCKED! You passed Beginner."
+            );
+
             System.out.println("ACHIEVEMENT UNLOCKED: GRAMMAR CHAMPION!");
-            System.out.println("You passed the Beginner level.");
         }
 
-        // Achievement 3: Answer every question correctly
+        // Achievement 3: Perfect Scores
         if (totalQuestions > 0
                 && correctAnswers == totalQuestions
                 && !perfectScoreUnlocked) {
@@ -500,12 +643,14 @@ public class PlayerProgress {
             perfectScoreUnlocked = true;
             changed = true;
 
-            System.out.println();
+            addNotification(
+                    "🏆 PERFECT SCORES UNLOCKED! Every answer was correct."
+            );
+
             System.out.println("ACHIEVEMENT UNLOCKED: PERFECT SCORES!");
-            System.out.println("You answered every question correctly.");
         }
 
-        // Achievement 4: Pass all three levels
+        // Achievement 4: Master in Progress
         if (beginnerCompleted
                 && intermediateCompleted
                 && advancedCompleted
@@ -514,14 +659,32 @@ public class PlayerProgress {
             masterInProgressUnlocked = true;
             changed = true;
 
-            System.out.println();
+            addNotification(
+                    "🏆 MASTER IN PROGRESS UNLOCKED! All three levels passed."
+            );
+
             System.out.println("ACHIEVEMENT UNLOCKED: MASTER IN PROGRESS!");
-            System.out.println("You've passed all three levels.");
         }
 
         if (changed) {
             save();
         }
+    }
+
+
+    public void addNotification(String message) {
+        if (notificationsEnabled && message != null && !message.isBlank()) {
+            pendingNotifications.add(message);
+        }
+    }
+
+    public List<String> getPendingNotifications() {
+        List<String> notifications =
+                new ArrayList<>(pendingNotifications);
+
+        pendingNotifications.clear();
+
+        return notifications;
     }
 
 
